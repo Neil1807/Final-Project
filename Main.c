@@ -1,5 +1,6 @@
 #include <stdio.h> 
 #include <string.h>
+#include <stdlib.h>
 
 #define MAX 20 // Maximum number of appliances
 
@@ -17,6 +18,7 @@ struct Appliances appliances[MAX]; // Array to store appliances
 int app_count = 0;
 double elec_cost = 0.0;
 char filename[100];
+char rate_filename[100];
 
 // Function prototypes
 void loginUser();
@@ -42,13 +44,19 @@ int main(void){
     int choice;
 
     // Load electricity cost and user information
-    loadElectricityCost();
     printf("===== ELECTRICITY USAGE ANALYZER =====\n");
 
     loginUser();
+    loadElectricityCost();
     loadAppliances();
 
     do {
+        // Clear screen after user input
+        #ifdef _WIN32
+            system("cls");
+        #else
+            system("clear");
+        #endif
         // Display menu
         printf("========== MENU ==========\n");
         printf("1. Update Electricity Rate\n");
@@ -117,6 +125,12 @@ int main(void){
                 printf("Invalid choice!");
             }
 
+            if (choice != 11) {
+                printf("\nPress Enter to continue...");
+                    while (getchar() != '\n'); // flush
+                        getchar();                 // wait
+    }
+
     } while (choice != 11);
 
     return 0;
@@ -132,10 +146,11 @@ void loginUser(){
 
     // Prompt for username
     printf("\nEnter username (letters, numbers, and underscore only): ");
-    scanf("%s", username);
+    scanf("%49s", username);
 
     // Create filename based on username
     sprintf(filename, "%s_appliances.txt", username);
+    sprintf(rate_filename, "%s_electricityRate.cfg", username);
 
     // Check if file exists
     FILE *fp = fopen(filename, "r");
@@ -165,7 +180,7 @@ void loginUser(){
 // Function to load electricity cost from file
 void loadElectricityCost(){
     // Open file to read electricity cost
-    FILE *fp = fopen("electricityRate.cfg", "r");
+    FILE *fp = fopen(rate_filename, "r");
 
     // If file doesn't exist, return
     if(fp == NULL){
@@ -181,7 +196,7 @@ void loadElectricityCost(){
 // Function to save electricity cost to file
 void saveElectricityCost(){
     // Open file to write electricity cost
-    FILE *fp = fopen("electricityRate.cfg", "w");
+    FILE *fp = fopen(rate_filename, "w");
 
     // If file doesn't exist, return
     if(fp == NULL){
@@ -209,7 +224,7 @@ void loadAppliances(){
     app_count = 0;
 
     // Read each line of the file and populate the appliances array
-    while(app_count < MAX && fscanf(fp, "%s %f %f %f %f", 
+    while(app_count < MAX && fscanf(fp, " %[^|]|%f|%f|%f|%f", 
         appliances[app_count].name,
         &appliances[app_count].wattage,
         &appliances[app_count].hours_used,
@@ -234,7 +249,7 @@ void saveAppliances() {
 
     // Write appliances from array to file
     for(int i = 0; i < app_count; i++){
-        fprintf(fp, "%s %.2f %.2f %.2f %.2f\n", appliances[i].name,
+        fprintf(fp, "%s|%.2f|%.2f|%.2f|%.2f\n", appliances[i].name,
         appliances[i].wattage,
         appliances[i].hours_used,
         appliances[i].daily_kwh,
@@ -243,7 +258,7 @@ void saveAppliances() {
     fclose(fp);
 }
 
-// Function to change electricity rate
+// Function to calculate daily and monthly kWh consumption for an appliance
 void calculateConsumption(int index){
     // Calculate daily and monthly kWh consumption for the appliance at the given index
     appliances[index].daily_kwh = (appliances[index].wattage * appliances[index].hours_used) / 1000.0;
